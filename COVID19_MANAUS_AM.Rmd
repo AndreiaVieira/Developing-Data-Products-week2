@@ -1,0 +1,156 @@
+---
+title: "Developing Data Products  Week2"
+author: "Andreia Vieira"
+date: "07/07/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+```
+## SUMMARY 
+
+###### This activity create a web page using R Markdown and  features a map created with Leaflet. The dataset show the MONITORING PANEL COVID-19 in neighborhoods of Manaus/AM,  in start july Brazil, cases  / 100.000 hab. The dataset  of population of the censo 2010 
+
+##  DATA 
+
+###### COVID-19 Manaus/AM - incidence: cases by 100. 000 hab. in 02 July  2020
+<font size ="2"> Fundação de vigilância sanitária – FVS/AM 
+Download http://www.fvs.am.gov.br/indicadorSalaSituacao_view/60/2 </font>
+
+
+###### Population and households - Censo 2010 Manaus/AM
+<font size ="2"> IBGE
+Download ftp://ftp.ibge.gov.br/Censos/Censo_Demografico_2010/Resultados_do_Universo/Agregados_por_Setores_Censitarios/AM_20171016.zip </font>
+
+
+```{r, warning=FALSE, message=FALSE}
+
+
+library(leaflet)
+library(dplyr)
+library(htmltools)
+
+# Leitura dos dados
+covid<-setwd("C:/Mana/ACursoCienciadeDados/Aulas/Desenvolvendo Dados/Projetos")
+covid<-read.csv("./COVID2019.csv", header=TRUE, sep=";")
+
+
+```
+## DATASET
+```{r, warning=FALSE, echo=TRUE}
+
+head(covid)
+
+```
+
+```{r}
+
+#Grupos
+covid <- covid %>%
+dplyr::mutate(grupo = cut(TAXACOVID, breaks = c(0, 500, 1000, 2000, Inf), labels = c("Abaixo de 500", "Entre 500 e 1000", "Entre 1000 e 2000", "Acima de 2000"))) 
+
+
+pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = covid$POPULACAO,
+)
+
+# Verificiar incidência da doença
+leaflet() %>%
+addTiles() %>%
+addCircleMarkers(data=covid, lat = ~LATITUDE, lng =~LONGITUDE, 
+                 radius = ~sqrt(covid$POPULACAO/1000),
+color=~pal(covid$POPULACAO),
+popup = ~htmltools::htmlEscape(covid$POPULACAO),
+stroke = FALSE, fillOpacity = 1)->map1
+
+
+map1%>% addLegend("topright", pal=pal ,  values = covid$POPULACAO,title ='POPULATION CENSO 2010 <br /> <center> NEIGHBORHOODS <br/>  MANAUS/AM  ', opacity = 1) -> map2
+
+
+pal2<-colorFactor(c("#ffce00","#ff9a00","#EE4540","#933b27"), domain = covid$grupo, reverse = FALSE)
+                    
+                    
+pal3<- colorFactor(c("#E7305B"), domain = covid$POPULACAO, ordered = FALSE)
+  
+leaflet()%>%
+addTiles() %>%
+addCircleMarkers(data=covid,
+                 lat = ~LATITUDE, 
+                 lng = ~LONGITUDE, 
+                 radius = ~sqrt(covid$POPULACAO/1000),
+                 color = ~pal2(covid$grupo),                
+                 popup = ~htmltools::htmlEscape(covid$grupo),
+                 stroke = FALSE, fillOpacity = 1)->map3
+
+map3%>% addLegend("topright", pal = pal2 ,  values = covid$grupo,title = '<center> COVID19 - MANAUS/AM <br /> <center>  cases /100.000 hab <br> 02/07/2020 <br/> <font size="0.5" </font>* Larger circle, larger population;<br/> smaller circle, smaller population', opacity = 1) -> map4
+
+
+
+```
+##  POPULATION NEIGHBORHOODS MANAUS/AM 
+
+```{r, warnings=FALSE, eval=TRUE}
+  
+browsable(
+  tagList(list(
+    tags$head(
+      tags$style(
+        ".leaflet .legend {
+                 line-height: 20px;
+                 font-size: 12px;
+                 }",
+        ".leaflet .legend i{
+        
+            border-radius: 50%;
+            width:15px;
+            height: 15px;
+            margin-top: 2px;
+        } "
+       )
+     ),
+   map2
+  ))
+)
+  
+```
+
+##  <font size="12">COVID19 - MANAUS/AM </font>
+
+```{r}
+library(htmltools)
+browsable(
+  tagList(list(
+    tags$head(
+      tags$style(
+        ".leaflet .legend {
+                 line-height: 20px;
+                 font-size: 12px;
+                 }",
+        ".leaflet .legend i{
+        
+            border-radius: 50%;
+            width:15px;
+            height: 15px;
+            margin-top: 2px;
+        } "
+       )
+     ),
+   map4
+  ))
+)
+
+```
+
+## <font size="12"> CONSIDERATIONS </font>
+
+- Most neighborhoods have more than 500 cases by 100.000 hab.
+
+- Highlight for less populated neighborhoods with very high rates
+
+
+
+
+
